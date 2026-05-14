@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile - ElectroMart</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <%- include('partials/header') %>
+    
+    <main class="container">
+        <div style="padding: 2rem 0; max-width: 600px; margin: 0 auto;">
+            <h1 style="margin-bottom: 2rem;">My Profile</h1>
+            
+            <div id="profileContent">
+                <div class="spinner"></div>
+            </div>
+        </div>
+    </main>
+    
+    <%- include('partials/footer') %>
+    
+    <script>
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+        }
+        
+        function deleteCookie(name) {
+            document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+        }
+        
+        async function loadProfile() {
+            const token = getCookie('token');
+            if (!token) {
+                window.location.href = '/login';
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/auth/profile', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    displayProfile(data.user);
+                } else {
+                    window.location.href = '/login';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+        
+        function displayProfile(user) {
+            document.getElementById('profileContent').innerHTML = `
+                <div style="background: white; padding: 2rem; border-radius: 0.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                    <div style="text-align: center; margin-bottom: 2rem;">
+                        <div style="width: 80px; height: 80px; background: #2563eb; color: white; 
+                                    border-radius: 50%; display: flex; align-items: center; justify-content: center; 
+                                    font-size: 2rem; margin: 0 auto 1rem;">
+                            ${user.fullName.charAt(0).toUpperCase()}
+                        </div>
+                        <h2>${user.fullName}</h2>
+                        <p style="color: #6b7280;">@${user.username}</p>
+                        <span style="padding: 0.25rem 0.75rem; border-radius: 1rem; 
+                                     background: ${user.role === 'admin' ? '#fee2e2' : '#dbeafe'}; 
+                                     color: ${user.role === 'admin' ? '#dc2626' : '#1e40af'}; 
+                                     font-size: 0.875rem; text-transform: capitalize;">
+                            ${user.role}
+                        </span>
+                    </div>
+                    
+                    <div style="border-top: 1px solid #e5e7eb; padding-top: 1.5rem;">
+                        <div style="margin-bottom: 1rem;">
+                            <strong>Email:</strong>
+                            <p style="color: #6b7280;">${user.email}</p>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <strong>Phone:</strong>
+                            <p style="color: #6b7280;">${user.phone || 'Not provided'}</p>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <strong>Address:</strong>
+                            <p style="color: #6b7280;">${user.address || 'Not provided'}</p>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                        <a href="/orders" class="btn" style="text-decoration: none; background: #f3f4f6; color: #374151;">
+                            📦 My Orders
+                        </a>
+                        <a href="/my-reviews" class="btn" style="text-decoration: none; background: #f3f4f6; color: #374151;">
+                            ⭐ My Reviews
+                        </a>
+                        ${user.role === 'seller' || user.role === 'admin' ? `
+                            <a href="/seller/dashboard" class="btn" style="text-decoration: none; background: #f3f4f6; color: #374151;">
+                                📊 Dashboard
+                            </a>
+                        ` : ''}
+                        <button onclick="handleLogout()" class="btn btn-danger">
+                            🚪 Logout
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+        
+        async function handleLogout() {
+            if (!confirm('Are you sure you want to logout?')) return;
+            
+            const token = getCookie('token');
+            
+            try {
+                await fetch('/api/auth/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    credentials: 'include'
+                });
+            } catch (error) {
+                console.error('Logout error:', error);
+            }
+            
+            deleteCookie('token');
+            window.location.href = '/';
+        }
+        
+        loadProfile();
+    </script>
+</body>
+</html>
